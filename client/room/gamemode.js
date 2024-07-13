@@ -30,8 +30,6 @@ var areaColor = new Color(1, 1, 1, 0);	// цвет зоны
 Properties.GetContext().GameModeName.Value = "GameModes/Parcour";
 Damage.FriendlyFire = false;
 Map.Rotation = GameMode.Parameters.GetBool("MapRotation");
-BreackGraph.OnlyPlayerBlocksDmg = GameMode.Parameters.GetBool("PartialDesruction");
-BreackGraph.WeakBlocks = GameMode.Parameters.GetBool("LoosenBlocks");
 
 // Запрещаем все, в руках
 Inventory.Main.Value = false;
