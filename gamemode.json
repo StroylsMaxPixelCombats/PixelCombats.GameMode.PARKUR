@@ -21,6 +21,11 @@
         "Name": "ViewSpawns",
         "DisplayName": "ОТОБРАЖАТЬ ЦВЕТ ЗОНЫ СОХРАНЕНИЯ",
         "Default": true
+      },
+      {
+        "Name": "MapRotation",
+        "DisplayName": "СМЕНА КАРТ",
+        "Default": true
       }
     ]
   }
