@@ -1,6 +1,6 @@
 //var System = importNamespace('System');
 import { DisplayValueHeader, Color } from 'pixel_combats/basic';
-import { Game, Players, Inventory, LeaderBoard, Teams, Damage, BreackGraph, Ui, Properties, GameMode, Spawns, AreaPlayerTriggerService, AreaViewService } from 'pixel_combats/room';
+import { Game, Players, Inventory, LeaderBoard, Teams, Damage, Ui, Properties, GameMode, Spawns, AreaPlayerTriggerService, AreaViewService } from 'pixel_combats/room';
 
 // Опции
 var EndOfMatchTime = 10;
@@ -28,7 +28,7 @@ var areaColor = new Color(1, 1, 1, 0);	// цвет зоны
 
 // Параметры, режима
 Properties.GetContext().GameModeName.Value = "GameModes/Parcour";
-Damage.FriendlyFire = false;
+Damage.GetContext().FriendlyFire = false;
 Map.Rotation = GameMode.Parameters.GetBool("MapRotation");
 
 // Запрещаем все, в руках
