@@ -34,7 +34,6 @@ BreackGraph.OnlyPlayerBlocksDmg = GameMode.Parameters.GetBool("PartialDesruction
 BreackGraph.WeakBlocks = GameMode.Parameters.GetBool("LoosenBlocks");
 
 // Запрещаем все, в руках
-var Inventory = Inventory.GetContext();
 Inventory.Main.Value = false;
 Inventory.Secondary.Value = false;
 Inventory.Melee.Value = false;
