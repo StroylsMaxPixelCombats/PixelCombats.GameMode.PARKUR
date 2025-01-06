@@ -1,10 +1,11 @@
 import { DisplayValueHeader, Color } from 'pixel_combats/basic';
-import { Game, GameMode, Properties, Teams, Damage, BreackGraph, Inventory, Ui, Spawns, LeaderBoard, BuildBlocksSet, AreaPlayerTriggerService, AreaViewService, msg } from 'pixel_combats/room';
+import { Game, GameMode, Properties, Teams, Damage, BreackGraph, Inventory, Ui, Spawns, LeaderBoard, BuildBlocksSet, AreaPlayerTriggerService, AreaViewService, msg, NewGameVote, NewGame } from 'pixel_combats/room';
 
 try {
 	
 // Опция, времени:
 var EndOfMatchTime = 10;
+var SetVoteTime = 20;
 
 // Константы, игры:
 var GameStateValue = "Game";
@@ -15,7 +16,7 @@ var EndTriggerPoints = 1000000;	// Сколько даётся, очков за 
 var CurSpawnPropName = "CurSpawn"; // Свойство, отвечающее за индекс - текущего спавна 0 - дефолтный, спавн.
 var ViewSpawnsParameterName = "ViewSpawns";	// Параметр, создания комнаты, отвечающий за визуализацию - спавнов.
 var ViewEndParameterName = "ViewEnd";	// Параметр - создания комнаты, отвечающий за визуализацию, конца - маршрута.
-var MaxSpawnsByArea = 100;	// Макс спавнов, на - зону.
+var MaxSpawnsByArea = 25;	// Макс спавнов, на - зону.
 var LeaderBoardProp = "Leader"; // Свойство, для - лидерборда.
 
 // Постоянные, переменные - триггеров:
@@ -24,11 +25,14 @@ var endAreas = AreaService.GetByTag("EndAreaTag");		// Зоны, конца - и
 var spawnAreas = AreaService.GetByTag("SpawnAreasTag");	// Зоны - спавнов.
 var stateProp = Properties.GetContext().Get("State");	// Свойство, состояния.
 var inventory = Inventory.GetContext(); // Контекст - инвентаря.
+var MapRotation = GameMode.Parameters.GetBool("MapRotation"); 
+var blueColor = new Color(0, 0, 1, 0);     // Цвет, для конец - зоны.
+var whiteColor = new Color(1, 1, 1, 1); // Цвет, для - чикпоинтов, зон.
 
 // Параметры, создания - комнаты:
 Properties.GetContext().GameModeName.Value = "GameModes/Parcour";
 Damage.GetContext().FriendlyFire = false;
-Map.Rotation = GameMode.Parameters.GetBool("MapRotation");
+Map.Rotation = MapRotation;
 BreackGraph.OnlyPlayerBlocksDmg = GameMode.Parameters.GetBool("PartialDesruction");
 BreackGraph.WeakBlocks = GameMode.Parameters.GetBool("LoosenBlocks");
 
@@ -40,6 +44,20 @@ inventory.Explosive.Value = false;
 inventory.Build.Value = false;
 inventory.BuildInfinity.Value = false;
 
+// Параметр, голосования:
+function OnVoteResult(v) {
+	if (v.Result === null) return;
+	NewGame.RestartGame(v.Result);
+}
+NewGameVote.OnResult.Add(OnVoteResult); // Вынесено из функции, которая выполняется, только - на сервере, чтобы не зависало, если не отработает, также чтобы не давало баг, если вызван метод 2 раза  - и появилось 2 подписки.
+
+function start_vote() {
+	NewGameVote.Start({
+		Variants: [{ MapId: 0 }],
+		Timer: SetVoteTime
+	}, MapRotation ? 3 : 0);
+}
+	
 // Стандартная - команда:
 Teams.Add("Blue", "<b><size=30><color=#0d177c>ß</color><color=#03088c>l</color><color=#0607b0>ᴜ</color><color=#1621ae>E</color></size></b>", new Color(0, 0, 1, 0));
 var BlueTeam = Teams.Get("Blue");
@@ -195,7 +213,7 @@ function SetPlayerSpawn(player, index) {
 	if (index < 0 || index >= spawnAreas.length) return;
 	// Задаём, спавны:
 	var area = spawnAreas[index];
-	var iter = area.Ranges.All;
+	var iter = area.Ranges.All[0];
 	iter.MoveNext();
 	var range = iter.Current;
 	// Определяем, куда смотреть - спавнам:
