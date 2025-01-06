@@ -236,3 +236,9 @@ function SetPlayerSpawn(player, index) {
 
 // Запуск - игры:
 stateProp.Value = GameStateValue;
+
+} catch (e) {
+        Players.All.forEach(p => {
+                msg.Show(`${e.name}: ${e.message} ${e.stack}`);
+        });
+}
