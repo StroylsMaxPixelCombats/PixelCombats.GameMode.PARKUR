@@ -1,31 +1,33 @@
 import { DisplayValueHeader, Color } from 'pixel_combats/basic';
-import { Game, GameMode, Properties, Teams, Damage, BreackGraph, Inventory, Ui, Spawns, LeaderBoard, BuildBlocksSet, AreaPlayerTriggerService, AreaViewService } from 'pixel_combats/room';
+import { Game, GameMode, Properties, Teams, Damage, BreackGraph, Inventory, Ui, Spawns, LeaderBoard, BuildBlocksSet, AreaPlayerTriggerService, AreaViewService, msg } from 'pixel_combats/room';
 
+try {
+	
 // Опция, времени:
 var EndOfMatchTime = 10;
 
 // Константы, игры:
 var GameStateValue = "Game";
 var EndOfMatchStateValue = "EndOfMatch";
-var EndAreaTag = "parcourend"; 	// тэг зоны конца паркура
-var SpawnAreasTag = "spawn";	// тэг зон промежуточных спавнов
-var EndTriggerPoints = 1000000;	// сколько дается очков за завершение маршрута
-var CurSpawnPropName = "CurSpawn"; // свойство, отвечающее за индекс текущего спавна 0 - дефолтный спавн
-var ViewSpawnsParameterName = "ViewSpawns";	// параметр создания комнаты, отвечающий за визуализацию спавнов
-var ViewEndParameterName = "ViewEnd";	// параметр создания комнаты, отвечающий за визуализацию конца маршрута
-var MaxSpawnsByArea = 100;	// макс спавнов на зону
-var LeaderBoardProp = "Leader"; // свойство для лидерборда
+var EndAreaTag = "parcourend"; 	// Тэг зоны, конца паркура.
+var SpawnAreasTag = "spawn";	// Тэг зон, промежуточных - спавнов.
+var EndTriggerPoints = 1000000;	// Сколько даётся, очков за завершение - маршрута.
+var CurSpawnPropName = "CurSpawn"; // Свойство, отвечающее за индекс - текущего спавна 0 - дефолтный, спавн.
+var ViewSpawnsParameterName = "ViewSpawns";	// Параметр, создания комнаты, отвечающий за визуализацию - спавнов.
+var ViewEndParameterName = "ViewEnd";	// Параметр - создания комнаты, отвечающий за визуализацию, конца - маршрута.
+var MaxSpawnsByArea = 100;	// Макс спавнов, на - зону.
+var LeaderBoardProp = "Leader"; // Свойство, для - лидерборда.
 
 // Постоянные, переменные - триггеров:
-var mainTimer = Timers.GetContext().Get("Main"); 		// таймер конца игры
-var endAreas = AreaService.GetByTag("EndAreaTag");		// зоны конца игры
-var spawnAreas = AreaService.GetByTag("SpawnAreasTag");	// зоны спавнов
-var stateProp = Properties.GetContext().Get("State");	// свойство состояния
-var inventory = Inventory.GetContext(); // контекст инвентаря
+var mainTimer = Timers.GetContext().Get("Main"); 		// Таймер, конца - игры.
+var endAreas = AreaService.GetByTag("EndAreaTag");		// Зоны, конца - игры.
+var spawnAreas = AreaService.GetByTag("SpawnAreasTag");	// Зоны - спавнов.
+var stateProp = Properties.GetContext().Get("State");	// Свойство, состояния.
+var inventory = Inventory.GetContext(); // Контекст - инвентаря.
 
 // Параметры, создания - комнаты:
 Properties.GetContext().GameModeName.Value = "GameModes/Parcour";
-Damage.FriendlyFire = false;
+Damage.GetContext().FriendlyFire = false;
 Map.Rotation = GameMode.Parameters.GetBool("MapRotation");
 BreackGraph.OnlyPlayerBlocksDmg = GameMode.Parameters.GetBool("PartialDesruction");
 BreackGraph.WeakBlocks = GameMode.Parameters.GetBool("LoosenBlocks");
@@ -39,15 +41,15 @@ inventory.Build.Value = false;
 inventory.BuildInfinity.Value = false;
 
 // Стандартная - команда:
-Teams.Add("Blue", "Teams/Blue", new Color(0, 0, 1, 0));
+Teams.Add("Blue", "<b><size=30><color=#0d177c>ß</color><color=#03088c>l</color><color=#0607b0>ᴜ</color><color=#1621ae>E</color></size></b>", new Color(0, 0, 1, 0));
 var BlueTeam = Teams.Get("Blue");
 BlueTeam.Spawns.SpawnPointsGroups.Add(1);
-BlueTeam.Spawns.RespawnTime.Value = 0;
+BlueTeam.Spawns.RespawnTime.Value = 5;
 
-// вывод подсказки
-Ui.GetContext().Hint.Value = "Hint/GoParcour";
+// Вывод, подсказки:
+Ui.GetContext().Hint.Value = "!Пройдите паркур, до конца!";
 
-// Настройки, игровых переключателей:
+// Настройки, игровых - переключателей:
 stateProp.OnValue.Add(OnState);
 function OnState() {
 	switch (stateProp.Value) {
@@ -55,9 +57,12 @@ function OnState() {
 			Spawns.GetContext().Enable = true;
 			break;
 		case EndOfMatchStateValue:
-			// После входа в конец зону, то деспавним игрока:
+			// После входа в конец зону, то деспавним игрока:  
+                        stateProp.Value = EndOfMatchStateValue;
+			
 			Spawns.GetContext().Enable = false;
 		        Spawns.GetContext().Despawn();
+	                
 			Game.GameOver(LeaderBoard.GetPlayers());
 			mainTimer.Restart(EndOfMatchTime);
 			// Говорим, кто выиграл - раунд:
@@ -87,7 +92,7 @@ endTrigger.Tags = [EndAreaTag];
 endTrigger.Enable = true;
 endTrigger.OnEnter.Add(function (player) {
 	endTrigger.Enable = false;
-	player.Properties.Get(LeaderBoardProp).Value += 10000;
+	player.Properties.Get(LeaderBoardProp).Value += 1000000;
 	stateProp.Value = EndOfMatchStateValue;
 });
 
@@ -95,8 +100,8 @@ endTrigger.OnEnter.Add(function (player) {
 var spawnTrigger = AreaPlayerTriggerService.Get("SpawnTrigger");
 spawnTrigger.Tags = [SpawnAreasTag];
 spawnTrigger.Enable = true;
-spawnTrigger.OnEnter.Add(function (player, area) {
-	if (spawnAreas == null || spawnAreas.length == 0) InitializeMap(); // todo костыль изза бага (не всегда прогружает нормально)	
+spawnTrigger.OnEnter.Add(function(player, area) {
+	if (spawnAreas == null || spawnAreas.length == 0) InitializeMap(); // Todo костыль, изза - бага (Не всегда, прогружает - нормально).
 	if (spawnAreas == null || spawnAreas.length == 0) return;
 	var prop = player.Properties.Get(CurSpawnPropName);
 	var startIndex = 0;
@@ -113,25 +118,25 @@ spawnTrigger.OnEnter.Add(function (player, area) {
 	}
 });
 
-// Таймер,для конца - раунда:
+// Таймер, для конца - раунда:
 mainTimer.OnTimer.Add(function () { Game.RestartGame(); });
 
 // Задаём, лидерБорды:
 LeaderBoard.PlayerLeaderBoardValues = [
 	{
 		Value: "Deaths",
-		DisplayName: "Statistics/Deaths",
-		ShortDisplayName: "Statistics/DeathsShort"
+		DisplayName: "<b><size=30><color=#be5f1b>D</color><color=#ba591a>ᴇ</color><color=#b65319>ᴀ</color><color=#b24d18>ᴛ</color><color=#ae4717>ʜ</color><color=#aa4116>s</color></size></b>",
+		ShortDisplayName: "<b><size=30><color=#be5f1b>D</color><color=#ba591a>ᴇ</color><color=#b65319>ᴀ</color><color=#b24d18>ᴛ</color><color=#ae4717>ʜ</color><color=#aa4116>s</color></size></b>"
 	},
 	{
 		Value: LeaderBoardProp,
-		DisplayName: "Statistics/Scores",
-		ShortDisplayName: "Statistics/ScoresShort"
+		DisplayName: "<b><size=30><color=#be5f1b>S</color><color=#ba591a>ᴄ</color><color=#b65319>ᴏ</color><color=#b24d18>ʀ</color><color=#ae4717>ᴇ</color><color=#aa4116>s</color></size></b>",
+		ShortDisplayName: "<b><size=30><color=#be5f1b>S</color><color=#ba591a>ᴄ</color><color=#b65319>ᴏ</color><color=#b24d18>ʀ</color><color=#ae4717>ᴇ</color><color=#aa4116>s</color></size></b>"
 	},
 	{
 	       Value: "Spawns",
-	       DisplayName: "Statistic/Spawn",
-	       ShortDisplayName: "Statistics/Spawn"
+	       DisplayName: "<b><size=30><color=#be5f1b>S</color><color=#ba591a>ᴘ</color><color=#b65319>ᴀ</color><color=#b24d18>ᴡ</color><color=#ae4717>ɴ</color><color=#aa4116>s</color></size></b>",
+	       ShortDisplayName: "<b><size=30><color=#be5f1b>S</color><color=#ba591a>ᴘ</color><color=#b65319>ᴀ</color><color=#b24d18>ᴡ</color><color=#ae4717>ɴ</color><color=#aa4116>s</color></size></b>"
 	}
 ];
 // Сортировочные, команды:
@@ -141,38 +146,33 @@ LeaderBoard.TeamLeaderBoardValue = {
 	ShortDisplayName: "Statistics\Scores"
 };
 // Вес, игрока в - лидерБорде:
-LeaderBoard.PlayersWeightGetter.Set(function (player) {
+LeaderBoard.PlayersWeightGetter.Set(function(player) {
 	return player.Properties.Get(LeaderBoardProp).Value;
 });
 // Счётчик, смертей:
-Damage.OnDeath.Add(function (player) {
+Damage.OnDeath.Add(function(player) {
 	++player.Properties.Deaths.Value;
 });
 // Счётчик, спавнов:
-Spawns.OnSpawn.Add(function (player) {
+Spawns.OnSpawn.Add(function(player) {
         ++player.Properties.Spawn.Value;
 });
 
-//  Вход в команды, м
-Teams.OnRequestJoinTeam.Add(function (player, team) { team.Add(player); });
-// разрешаем спавн
-Teams.OnPlayerChangeTeam.Add(function (player) { player.Spawns.Spawn() });
+// Вход в команды, по - запросу:
+Teams.OnRequestJoinTeam.Add(function(player, team) { team.Add(player); });
+// Сравним игрока, по - запросу: 
+Teams.OnPlayerChangeTeam.Add(function(player) { player.Spawns.Spawn() });
 
-// счетчик спавнов
-Spawns.OnSpawn.Add(function (player) {
-	++player.Properties.Spawns.Value;
-});
-
-// инициализация всего что зависит от карты
+// Инициализация всего, что зависит - от карты:
 Map.OnLoad.Add(InitializeMap);
 function InitializeMap() {
 	endAreas = AreaService.GetByTag(EndAreaTag);
 	spawnAreas = AreaService.GetByTag(SpawnAreasTag);
-	//log.debug("spawnAreas.length=" + spawnAreas.length);
-	// ограничитель
+	log.debug("spawnAreas.length=" + spawnAreas.length);
+	// Ограничитель:
 	if (spawnAreas == null || spawnAreas.length == 0) return;
-	// сортировка зон
-	spawnAreas.sort(function (a, b) {
+	// Сортировка, зон:
+	spawnAreas.sort(function(a, b) {
 		if (a.Name > b.Name) return 1;
 		if (a.Name < b.Name) return -1;
 		return 0;
@@ -180,25 +180,25 @@ function InitializeMap() {
 }
 InitializeMap();
 
-// при смене свойства индекса спавна задаем спавн
-Properties.OnPlayerProperty.Add(function (context, prop) {
+// При смене - свойства индекса спавна, задаем - спавн:
+Properties.OnPlayerProperty.Add(function(context, prop) {
 	if (prop.Name != CurSpawnPropName) return;
-	//log.debug(context.Player + " spawn point is " + prop.Value);
+	log.debug(context.Player + " spawn point is " + prop.Value);
 	SetPlayerSpawn(context.Player, prop.Value);
 });
 
 function SetPlayerSpawn(player, index) {
 	var spawns = Spawns.GetContext(player);
-	// очистка спавнов
+	// Очистка, - спавнов:
 	spawns.CustomSpawnPoints.Clear();
-	// если нет захвата то сброс спавнов
+	// Если нет захвата, то сброс - спавнов:
 	if (index < 0 || index >= spawnAreas.length) return;
-	// задаем спавны
+	// Задаём, спавны:
 	var area = spawnAreas[index];
-	var iter = area.Ranges.GetEnumerator();
+	var iter = area.Ranges.All;
 	iter.MoveNext();
 	var range = iter.Current;
-	// определяем куда смотреть спавнам
+	// Определяем, куда смотреть - спавнам:
 	var lookPoint = {};
 	if (index < spawnAreas.length - 1) lookPoint = spawnAreas[index + 1].Ranges.GetAveragePosition();
 	else {
@@ -206,7 +206,7 @@ function SetPlayerSpawn(player, index) {
 			lookPoint = endAreas[0].Ranges.GetAveragePosition();
 	}
 
-	//log.debug("range=" + range);
+	log.debug("range=" + range);
 	var spawnsCount = 0;
 	for (var x = range.Start.x; x < range.End.x; x += 2)
 		for (var z = range.Start.z; z < range.End.z; z += 2) {
@@ -216,5 +216,5 @@ function SetPlayerSpawn(player, index) {
 		}
 }
 
-// запуск игры
+// Запуск - игры:
 stateProp.Value = GameStateValue;
