@@ -1,120 +1,91 @@
-import { DisplayValueHeader, Color } from 'pixel_combats/basic';
-import { Game, GameMode, Properties, Teams, Damage, BreackGraph, Inventory, Ui, Spawns, LeaderBoard, BuildBlocksSet, AreaPlayerTriggerService, AreaViewService, msg, NewGameVote, NewGame } from 'pixel_combats/room';
+// Импорты:
+import * as Basic from 'pixel_combats/basic';
+import * as Room from 'pixel_combats/room';
 
-try {
-	
-// Опция, времени:
-var EndOfMatchTime = 10;
-var SetVoteTime = 20;
+try 
 
-// Константы, игры:
-var GameStateValue = "Game";
-var EndOfMatchStateValue = "EndOfMatch";
-var EndAreaTag = "parcourend"; 	// Тэг зоны, конца паркура.
-var SpawnAreasTag = "spawn";	// Тэг зон, промежуточных - спавнов.
-var EndTriggerPoints = 1000000;	// Сколько даётся, очков за завершение - маршрута.
-var CurSpawnPropName = "CurSpawn"; // Свойство, отвечающее за индекс - текущего спавна 0 - дефолтный, спавн.
-var ViewSpawnsParameterName = "ViewSpawns";	// Параметр, создания комнаты, отвечающий за визуализацию - спавнов.
-var ViewEndParameterName = "ViewEnd";	// Параметр - создания комнаты, отвечающий за визуализацию, конца - маршрута.
-var MaxSpawnsByArea = 25;	// Макс спавнов, на - зону.
-var LeaderBoardProp = "Leader"; // Свойство, для - лидерборда.
+// Константы, таймера - игры:
+const EndOfMatchTime = 11;
+const GameModeTime = 181;
+const SetVoteTime = 15;
 
-// Постоянные, переменные - триггеров:
-var mainTimer = Timers.GetContext().Get("Main"); 		// Таймер, конца - игры.
-var endAreas = AreaService.GetByTag("EndAreaTag");		// Зоны, конца - игры.
-var spawnAreas = AreaService.GetByTag("SpawnAreasTag");	// Зоны - спавнов.
-var stateProp = Properties.GetContext().Get("State");	// Свойство, состояния.
-var inventory = Inventory.GetContext(); // Контекст - инвентаря.
-var MapRotation = GameMode.Parameters.GetBool("MapRotation"); 
-var blueColor = new Color(0, 0, 1, 0);     // Цвет, для конец - зоны.
-var whiteColor = new Color(1, 1, 1, 1); // Цвет, для - чикпоинтов, зон.
+// Константы, имён:
+const GameModeStateValue = 'Game';
+const EndOfMatchStateValue = 'EndOfMatch';
+const EndAreaTag = 'ParcourEnd'; 	// Тэг зоны, конца паркура.
+const SpawnAreasTag = 'Spawn';	// Тэг зон, промежуточных - спавнов.
+const EndTriggerPoints = 100000;  // Сколько даётся, очков за завершение - маршрута.
+const CurSpawnPropName = 'CurSpawn'; // Свойство, отвечающее за индекс - текущего спавна 0 - дефолтный, спавн.
+const ViewSpawnsParameterName = 'ViewSpawns';  // Параметр, создания комнаты, отвечающий за визуализацию - спавнов.
+const ViewEndParameterName = 'ViewEnd';	// Параметр - создания комнаты, отвечающий за визуализацию, конца - маршрута.
+const MaxSpawnsByArea = 25;	// Макс спавнов, на - зону.
+const LeaderBoardProp = 'Leader'; // Свойство, для - лидерборда.
 
-// Параметры, создания - комнаты:
-Properties.GetContext().GameModeName.Value = "GameModes/Parcour";
-Damage.GetContext().FriendlyFire = false;
-Map.Rotation = MapRotation;
-BreackGraph.OnlyPlayerBlocksDmg = GameMode.Parameters.GetBool("PartialDesruction");
-BreackGraph.WeakBlocks = GameMode.Parameters.GetBool("LoosenBlocks");
+// Постоянные, переменные:
+let BlueTeam = Room.Teams.Get('Blue');
+let MainTimer = Room.Timers.GetContext().Get('Main'); 		// Таймер, конца - игры.
+let EndAreas = Room.AreaService.GetByTag('EndAreaTag');		// Зоны, конца - игры.
+let SpawnAreas = Room.AreaService.GetByTag('SpawnAreasTag');	// Зоны - спавнов.
+let StateProp = Room.Properties.GetContext().Get('State');	// Свойство, состояния.
+let Inventory = Room.Inventory.GetContext(); // Контекст - инвентаря.
+let BlueColor = new Basic.Color(0, 0, 1, 0);     // Цвет, для конец - зоны.
+let WhiteColor = new Basic.Color(1, 1, 1, 1); // Цвет, для - чикпоинтов, зон.
 
-// Запрещаем, инвентарь:
-inventory.Main.Value = false;
-inventory.Secondary.Value = false;
-inventory.Melee.Value = false;
-inventory.Explosive.Value = false;
-inventory.Build.Value = false;
-inventory.BuildInfinity.Value = false;
+// Опции:
+const MapRotation = Room.GameMode.Parameters.GetBool('MapRotation'); 
+Room.Properties.GetContext().GameModeName.Value = 'GameModes/Parcour';
+Rooom.Damage.GetContext().FriendlyFire = false;
+Room.Map.Rotation = MapRotation;
+Room.BreackGraph.OnlyPlayerBlocksDmg = GameMode.Parameters.GetBool('PartialDesruction');
+Room.BreackGraph.WeakBlocks = GameMode.Parameters.GetBool('LoosenBlocks');
 
-// Параметр, голосования:
-function OnVoteResult(v) {
-	if (v.Result === null) return;
-	NewGame.RestartGame(v.Result);
-}
-NewGameVote.OnResult.Add(OnVoteResult); // Вынесено из функции, которая выполняется, только - на сервере, чтобы не зависало, если не отработает, также чтобы не давало баг, если вызван метод 2 раза  - и появилось 2 подписки.
-
-function start_vote() {
-	NewGameVote.Start({
-		Variants: [{ MapId: 0 }],
-		Timer: SetVoteTime
-	}, MapRotation ? 3 : 0);
-}
+// Конфигурация, инвентаря:
+Inventory.Main.Value = false;
+Inventory.Secondary.Value = false;
+Inventory.Melee.Value = false;
+Inventory.Explosive.Value = false;
+Inventory.Build.Value = false;
+Inventory.BuildInfinity.Value = false;
 	
 // Стандартная - команда:
-Teams.Add("Blue", "<b><size=30><color=#0d177c>ß</color><color=#03088c>l</color><color=#0607b0>ᴜ</color><color=#1621ae>E</color></size></b>", new Color(0, 0, 1, 0));
-var BlueTeam = Teams.Get("Blue");
+Room.Teams.Add('Blue', '<b><size=30><color=#0d177c>ß</color><color=#03088c>l</color><color=#0607b0>ᴜ</color><color=#1621ae>E</color></size></b>', new Basic.Color(0, 0, 1, 0));
 BlueTeam.Spawns.SpawnPointsGroups.Add(1);
 BlueTeam.Spawns.RespawnTime.Value = 5;
 
 // Вывод, подсказки:
-Ui.GetContext().Hint.Value = "!Пройдите паркур, до конца!";
+ Room.Ui.GetContext(BlueTeam).Hint.Value = '!Пройдите: маршрут, до - конца!';
+if (Room.GameMode.Parameters.GetBool('EnHint')) {
+ Room.Ui.GetContext(BlueTeam).Hint.Value = 'Proydite: route, to - the end!';
+}
 
 // Настройки, игровых - переключателей:
-stateProp.OnValue.Add(OnState);
+StateProp.OnValue.Add(OnState);
 function OnState() {
-	switch (stateProp.Value) {
-		case GameStateValue:
-			Spawns.GetContext().Enable = true;
-			break;
-		case EndOfMatchStateValue:
-			// После входа в конец зону, то деспавним игрока:  
-                        stateProp.Value = EndOfMatchStateValue;
-			
-			Spawns.GetContext().Enable = false;
-		        Spawns.GetContext().Despawn();
-	                
-			Game.GameOver(LeaderBoard.GetPlayers());
-			mainTimer.Restart(EndOfMatchTime);
-			// Говорим, кто выиграл - раунд:
-			break;
-	}
-}
-
-// Визулятор - конец, зоны:
-if (GameMode.Parameters.GetBool(ViewEndParameterName)) {
-	var endView = AreaViewService.GetContext().Get("EndView");
-	endView.Color = new Color(0, 0, 1, 0);
-	endView.Tags = [EndAreaTag];
-	endView.Enable = true;
-}
-
-// Визуляторы, промежуточных - чикпоинтов:
-if (GameMode.Parameters.GetBool(ViewSpawnsParameterName)) {
-	var spawnsView = AreaViewService.GetContext().Get("SpawnsView");
-	spawnsView.Color = new Color(1, 1, 1, 1);
-	spawnsView.Tags = [SpawnAreasTag];
-	spawnsView.Enable = true;
+ switch (StateProp.Value) {
+case GameModeStateValue:
+ StateProp.Value = GameModeStateValue;
+ Room.Spawns.GetContext().Enable = true;
+ MainTimer.Restart(GameModeTime);
+break;
+case EndOfMatchStateValue: // После входа в конец зону, то деспавним игрока:  
+StateProp.Value = EndOfMatchStateValue;			
+Room.Spawns.GetContext().Enable = false;
+Room.Spawns.GetContext().Despawn();	                
+Room.Game.GameOver(Room.LeaderBoard.GetTeams());
+MainTimer.Restart(EndOfMatchTime);
+// Говорим, кто выиграл - раунд:
+	   break;
+      }
 }
 
 // Триггер, конца - раунда:
-var endTrigger = AreaPlayerTriggerService.Get("EndTrigger");
-endTrigger.Tags = [EndAreaTag];
-endTrigger.Enable = true;
-endTrigger.OnEnter.Add(function (player) {
-	endTrigger.Enable = false;
-	player.Properties.Get(LeaderBoardProp).Value += 1000000;
-	stateProp.Value = EndOfMatchStateValue;
-});
+CreateNewArea('EndTrigger', ['EndAreaTag'], true, function(Player) {
+ Player.Properties.Get('LeaderBoardProp').Value += 100000;
+EndTrigger.Enable = false;
+  StateProp.Value = EndOfMatchStateValue;
+}, function(Player) {}, 'EndTriggerView', new Basic.Color(0, 0, 1, 0), true);
 
-// Триггер, спавна:
+// Триггер, промежуточной - сохранения:
 var spawnTrigger = AreaPlayerTriggerService.Get("SpawnTrigger");
 spawnTrigger.Tags = [SpawnAreasTag];
 spawnTrigger.Enable = true;
