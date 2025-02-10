@@ -12,8 +12,6 @@ const SetVoteTime = 15;
 // Константы, имён:
 const GameModeStateValue = 'Game';
 const EndOfMatchStateValue = 'EndOfMatch';
-const EndAreaTag = 'ParcourEnd'; 	// Тэг зоны, конца паркура.
-const SpawnAreasTag = 'Spawn';	// Тэг зон, промежуточных - спавнов.
 const EndTriggerPoints = 100000;  // Сколько даётся, очков за завершение - маршрута.
 const CurSpawnPropName = 'CurSpawn'; // Свойство, отвечающее за индекс - текущего спавна 0 - дефолтный, спавн.
 const ViewSpawnsParameterName = 'ViewSpawns';  // Параметр, создания комнаты, отвечающий за визуализацию - спавнов.
@@ -28,8 +26,6 @@ let EndAreas = Room.AreaService.GetByTag('EndAreaTag');		// Зоны, конца
 let SpawnAreas = Room.AreaService.GetByTag('SpawnAreasTag');	// Зоны - спавнов.
 let StateProp = Room.Properties.GetContext().Get('State');	// Свойство, состояния.
 let Inventory = Room.Inventory.GetContext(); // Контекст - инвентаря.
-let BlueColor = new Basic.Color(0, 0, 1, 0);     // Цвет, для конец - зоны.
-let WhiteColor = new Basic.Color(1, 1, 1, 1); // Цвет, для - чикпоинтов, зон.
 
 // Опции:
 const MapRotation = Room.GameMode.Parameters.GetBool('MapRotation'); 
@@ -86,54 +82,26 @@ EndTrigger.Enable = false;
 }, function(Player) {}, 'EndTriggerView', new Basic.Color(0, 0, 1, 0), true);
 
 // Триггер, промежуточной - сохранения:
-var spawnTrigger = AreaPlayerTriggerService.Get("SpawnTrigger");
-spawnTrigger.Tags = [SpawnAreasTag];
-spawnTrigger.Enable = true;
-spawnTrigger.OnEnter.Add(function(player, area) {
-	if (spawnAreas == null || spawnAreas.length == 0) InitializeMap(); // Todo костыль, изза - бага (Не всегда, прогружает - нормально).
-	if (spawnAreas == null || spawnAreas.length == 0) return;
-	var prop = player.Properties.Get(CurSpawnPropName);
-	var startIndex = 0;
-	if (prop.Value != null) startIndex = prop.Value;
-	for (var i = startIndex; i < spawnAreas.length; ++i) {
-		if (spawnAreas[i] == area) {
-			var prop = player.Properties.Get(CurSpawnPropName);
-			if (prop.Value == null || i > prop.Value) {
-				prop.Value = i;
-				player.Properties.Get(LeaderBoardProp).Value += 10;
-			}
-			break;
-		}
-	}
-});
+CreateNewArea('SpawnTrigger', ['SpawnTrigger'], true, function(Player, Area) { 
+ if (SpawnTrigger == null || SpawnTrigger.length == 0) InitializeMap(); 
+ if (SpawnTrigger == null || SpawnTrigger.length == 0) return;
+const Prop = Player.Properties.Get('CurSpawnPropName');
+const StartIndex = 0;
+ if (Prop.Value != null) StartIndex = Prop.Value;
+for (const Indx = StartIndex; Indx < SpawnTrigger.length; ++Indx) {
+ if (SpawnTrigger[Indx] == Area) {
+const Prop = Player.Properties.Get('CurSpawnPropName');
+ if (Prop.Value == null || Indx > Prop.Value) { 
+Prop.Value = Indx;
+Player.Properties.Get('LeaderBoardProp').Value += 1000;
+ break;
+ }, }, }, function(Player, Area) {}, 'SpawnTriggerView', new Basic.Color(1, 1, 1, 0), true);
 
 // Таймер, для конца - раунда:
-mainTimer.OnTimer.Add(function () { Game.RestartGame(); });
+MainTimer.OnTimer.Add(function() { StartVote(); });
 
 // Задаём, лидерБорды:
-LeaderBoard.PlayerLeaderBoardValues = [
-	{
-		Value: "Deaths",
-		DisplayName: "<b><size=30><color=#be5f1b>D</color><color=#ba591a>ᴇ</color><color=#b65319>ᴀ</color><color=#b24d18>ᴛ</color><color=#ae4717>ʜ</color><color=#aa4116>s</color></size></b>",
-		ShortDisplayName: "<b><size=30><color=#be5f1b>D</color><color=#ba591a>ᴇ</color><color=#b65319>ᴀ</color><color=#b24d18>ᴛ</color><color=#ae4717>ʜ</color><color=#aa4116>s</color></size></b>"
-	},
-	{
-		Value: LeaderBoardProp,
-		DisplayName: "<b><size=30><color=#be5f1b>S</color><color=#ba591a>ᴄ</color><color=#b65319>ᴏ</color><color=#b24d18>ʀ</color><color=#ae4717>ᴇ</color><color=#aa4116>s</color></size></b>",
-		ShortDisplayName: "<b><size=30><color=#be5f1b>S</color><color=#ba591a>ᴄ</color><color=#b65319>ᴏ</color><color=#b24d18>ʀ</color><color=#ae4717>ᴇ</color><color=#aa4116>s</color></size></b>"
-	},
-	{
-	       Value: "Spawns",
-	       DisplayName: "<b><size=30><color=#be5f1b>S</color><color=#ba591a>ᴘ</color><color=#b65319>ᴀ</color><color=#b24d18>ᴡ</color><color=#ae4717>ɴ</color><color=#aa4116>s</color></size></b>",
-	       ShortDisplayName: "<b><size=30><color=#be5f1b>S</color><color=#ba591a>ᴘ</color><color=#b65319>ᴀ</color><color=#b24d18>ᴡ</color><color=#ae4717>ɴ</color><color=#aa4116>s</color></size></b>"
-	}
-];
-// Сортировочные, команды:
-LeaderBoard.TeamLeaderBoardValue = {
-	Value: LeaderBoardProp,
-	DisplayName: "Statistics\Scores",
-	ShortDisplayName: "Statistics\Scores"
-};
+
 // Вес, игрока в - лидерБорде:
 LeaderBoard.PlayersWeightGetter.Set(function(player) {
 	return player.Properties.Get(LeaderBoardProp).Value;
